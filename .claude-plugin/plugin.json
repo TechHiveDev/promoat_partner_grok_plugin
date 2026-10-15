@@ -7,7 +7,7 @@
     "url": "https://platform.promoat.ai"
   },
   "homepage": "https://platform.promoat.ai",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "userConfig": {
     "PROMOAT_KEY": {
       "type": "string",
