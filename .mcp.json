@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "promoat": {
+      "type": "http",
+      "url": "https://promoat-platform-plugins.vercel.app/mcp",
+      "headers": {
+        "Authorization": "Bearer ${user_config.PROMOAT_KEY}"
+      }
+    }
+  }
+}
