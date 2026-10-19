@@ -1,0 +1,17 @@
+{
+  "name": "promoat",
+  "description": "Make realistic AI videos of yourself, with your own face and voice, from your agent. Powered by Promoat",
+  "owner": {
+    "name": "Promoat",
+    "url": "https://platform.promoat.ai"
+  },
+  "plugins": [
+    {
+      "name": "promoat",
+      "source": "./",
+      "displayName": "AI Clone Videos",
+      "description": "Make realistic AI videos of yourself, with your own face and voice, from your agent. Powered by Promoat",
+      "version": "1.2.2"
+    }
+  ]
+}

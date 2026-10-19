@@ -1,20 +1,12 @@
 {
   "name": "promoat",
-  "description": "Realistic AI presenter videos. Estimate, create, and edit videos with your own Promoat account.",
-  "version": "1.1.1",
+  "displayName": "AI Clone Videos",
+  "description": "Make realistic AI videos of yourself, with your own face and voice, from your agent. Powered by Promoat",
+  "version": "1.2.2",
   "author": {
     "name": "Promoat",
     "url": "https://platform.promoat.ai"
   },
   "homepage": "https://platform.promoat.ai",
-  "license": "UNLICENSED",
-  "userConfig": {
-    "PROMOAT_KEY": {
-      "type": "string",
-      "title": "Promoat API key",
-      "description": "Your Promoat partner API key (pmat_<12 hex>_<48 hex>). Each user brings their own key from https://platform.promoat.ai.",
-      "required": true,
-      "sensitive": true
-    }
-  }
+  "license": "UNLICENSED"
 }

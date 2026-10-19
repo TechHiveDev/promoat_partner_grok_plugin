@@ -6,22 +6,43 @@ The plugin files sit at the repository root.
 
 ## What's in this plugin
 
-- `.claude-plugin/plugin.json` — manifest. Declares a `userConfig.PROMOAT_KEY` field (sensitive, required) so the host CLI prompts for and stores the key.
-- `.mcp.json` — points the host at the shared MCP server (`https://promoat-platform-plugins.vercel.app/mcp`) with `Authorization: Bearer ${user_config.PROMOAT_KEY}`.
+- `.claude-plugin/marketplace.json` — makes this repository a one-plugin marketplace, so it can be installed straight from GitHub.
+- `.claude-plugin/plugin.json` — manifest.
+- `.mcp.json` — points the host at the shared MCP server (`https://promoat-platform-plugins.vercel.app/mcp`) with `Authorization: Bearer ${PROMOAT_KEY}`. Both Claude Code and Grok Build fill `${PROMOAT_KEY}` from the environment, so the same file works in both.
 - `skills/promoat-partner-api/SKILL.md` — the Promoat Partner API operating manual. Golden path, hard rules, every endpoint, price, and error code.
 
 This plugin ships no custom code. Every tool call goes through the shared MCP server at `/mcp`, which accepts a `pmat_...` bearer key.
 
 ## Install
 
-On first load, the host prompts for `PROMOAT_KEY`. Paste a `pmat_...` key there. Do not put the key in chat, and do not commit it.
+### 1. Set your key (once)
 
-### Claude Code
+Get a `pmat_...` key from https://platform.promoat.ai, then save it as the `PROMOAT_KEY` environment variable. Do not put the key in chat, and do not commit it.
+
+Windows (PowerShell):
+
+```powershell
+[Environment]::SetEnvironmentVariable("PROMOAT_KEY", "pmat_...", "User")
+```
+
+macOS / Linux (add to `~/.zshrc` or `~/.bashrc`):
 
 ```bash
-claude plugin marketplace add TechHiveDev/promoat_partner_grok-claude
-claude plugin install promoat
+export PROMOAT_KEY="pmat_..."
 ```
+
+Then fully close and reopen your terminal (and VS Code / Cursor, if you start the CLI from there) so new sessions see the variable. Check it with `echo $env:PROMOAT_KEY` (PowerShell) or `echo $PROMOAT_KEY` (bash/zsh).
+
+### 2. Install the plugin
+
+#### Claude Code
+
+```text
+/plugin marketplace add TechHiveDev/promoat_partner_grok_plugin
+/plugin install promoat@promoat
+```
+
+The first line adds this repository as a marketplace (named `promoat`); the second installs the `promoat` plugin from it. Requires Claude Code 2.1.275 or later.
 
 For one session from a local checkout:
 
@@ -29,7 +50,9 @@ For one session from a local checkout:
 claude --plugin-dir .
 ```
 
-### Grok Build
+Note: opening Claude Code *inside* this repository also loads `.mcp.json` as a project server. That works too now, but it duplicates the plugin's server; when testing the installed plugin, start Claude Code from another folder.
+
+#### Grok Build
 
 From a local checkout:
 
@@ -48,7 +71,7 @@ grok plugin install . --trust
 grok inspect
 ```
 
-`grok inspect` should list the `promoat` MCP server as connected and the `promoat-partner-api` skill as available. Inside Claude Code, `/mcp` should show `promoat` connected.
+`grok inspect` should list the `promoat` MCP server and the `promoat-partner-api` skill; in Grok's MCP Servers panel `promoat` should be `[ready]` with 25 tools. Inside Claude Code, `/mcp` should show `promoat` connected with 25 tools. If either shows a 401 or the server is missing, `PROMOAT_KEY` isn't set in the environment the CLI was started from.
 
 ### Golden-path smoke test
 
