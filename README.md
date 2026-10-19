@@ -76,3 +76,9 @@ grok inspect
 ### Golden-path smoke test
 
 Ask the agent, in order: `get_balance` → `estimate_video` (do not spend yet) → confirm the quote → `create_video` → poll `get_job` until `completed` or `failed`.
+
+## License
+
+Proprietary. © 2026 Promoat. All rights reserved.
+
+You may install and use this plugin in Grok Build or Claude Code with your own Promoat account and API key. You may not copy, modify, republish, sublicense, or sell the plugin files. See [LICENSE](LICENSE) for the full terms. Use of the Promoat platform and Partner API follows Promoat's own terms at https://platform.promoat.ai.
