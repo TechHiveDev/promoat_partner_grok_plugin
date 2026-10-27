@@ -1,6 +1,6 @@
 # Promoat for Grok Build / Claude Code
 
-A Claude Code–format plugin for the Promoat Partner API. Grok Build reads Claude Code's plugin format directly, so this one package works on both. It calls `https://promoat-platform-plugins.vercel.app/mcp` with your own `PROMOAT_KEY`. That server proxies to the live API at `https://platform.promoat.ai`. It does not charge, reserve, or refund on its own.
+A Claude Code–format plugin for the Promoat Partner API. Grok Build reads Claude Code's plugin format directly, so this one package works on both. It calls `https://promoat-platform-plugins.vercel.app/mcp` with your own Promoat API key. That server proxies to the live API at `https://platform.promoat.ai`. It does not charge, reserve, or refund on its own.
 
 The plugin files sit at the repository root.
 
@@ -8,32 +8,18 @@ The plugin files sit at the repository root.
 
 - `.claude-plugin/marketplace.json` — makes this repository a one-plugin marketplace, so it can be installed straight from GitHub.
 - `.claude-plugin/plugin.json` — manifest.
-- `.mcp.json` — points the host at the shared MCP server (`https://promoat-platform-plugins.vercel.app/mcp`) with `Authorization: Bearer ${PROMOAT_KEY}`. Both Claude Code and Grok Build fill `${PROMOAT_KEY}` from the environment, so the same file works in both.
+- `.mcp.json` — points the host at the shared MCP server (`https://promoat-platform-plugins.vercel.app/mcp`) with `Authorization: Bearer ${user_config.promoat_key}`, filled from the key you enter at install. This `claude-directory` branch is the Claude Code version; the `main` branch uses an environment variable for Grok Build.
 - `skills/promoat-partner-api/SKILL.md` — the Promoat Partner API operating manual. Golden path, hard rules, every endpoint, price, and error code.
 
 This plugin ships no custom code. Every tool call goes through the shared MCP server at `/mcp`, which accepts a `pmat_...` bearer key.
 
 ## Install
 
-### 1. Set your key (once)
+### 1. Get your key
 
-Get a `pmat_...` key from https://platform.promoat.ai, then save it as the `PROMOAT_KEY` environment variable. Do not put the key in chat, and do not commit it.
+Get a `pmat_...` key from https://platform.promoat.ai. Claude Code asks for it when you install the plugin and stores it as a sensitive setting. Do not put the key in chat, and do not commit it.
 
-Windows (PowerShell):
-
-```powershell
-[Environment]::SetEnvironmentVariable("PROMOAT_KEY", "pmat_...", "User")
-```
-
-macOS / Linux (add to `~/.zshrc` or `~/.bashrc`):
-
-```bash
-export PROMOAT_KEY="pmat_..."
-```
-
-Then fully close and reopen your terminal (and VS Code / Cursor, if you start the CLI from there) so new sessions see the variable. Check it with `echo $env:PROMOAT_KEY` (PowerShell) or `echo $PROMOAT_KEY` (bash/zsh).
-
-### 2. Install the plugin
+### 2. Install the plugin (Claude Code asks for your key here)
 
 #### Claude Code
 
@@ -71,7 +57,7 @@ grok plugin install . --trust
 grok inspect
 ```
 
-`grok inspect` should list the `promoat` MCP server and the `promoat-partner-api` skill; in Grok's MCP Servers panel `promoat` should be `[ready]` with 25 tools. Inside Claude Code, `/mcp` should show `promoat` connected with 25 tools. If either shows a 401 or the server is missing, `PROMOAT_KEY` isn't set in the environment the CLI was started from.
+`grok inspect` should list the `promoat` MCP server and the `promoat-partner-api` skill; in Grok's MCP Servers panel `promoat` should be `[ready]` with 25 tools. Inside Claude Code, `/mcp` should show `promoat` connected with 25 tools. If you see a 401 or the server is missing, the saved Promoat API key is wrong or missing; reconfigure the plugin.
 
 ### Golden-path smoke test
 

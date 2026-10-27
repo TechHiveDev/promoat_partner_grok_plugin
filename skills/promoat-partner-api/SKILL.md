@@ -8,14 +8,14 @@ version: 1.2.2
 
 The **Promoat Partner API** turns a script (or a recording) into a finished vertical 9:16 marketing video fronted by an AI presenter. This file is the agent's source of truth: golden path, rules, decision table, every tool, price, limit and error. When the live API disagrees with this file, trust the API response and tell the user.
 
-**You work through the Promoat MCP tools** (`get_balance`, `estimate_video`, `create_video`, `get_job`, …). The plugin connects them with the user's own key, read from the `PROMOAT_KEY` environment variable. **If the Promoat tools are not in your tool list, stop**: tell the user the Promoat MCP server isn't connected and how to fix it ([Key handling](#hard-rules), rule 1). Don't switch to raw HTTP on your own, and never go looking for a key.
+**You work through the Promoat MCP tools** (`get_balance`, `estimate_video`, `create_video`, `get_job`, …). The plugin connects them with the user's own key, entered when the plugin was installed. **If the Promoat tools are not in your tool list, stop**: tell the user the Promoat MCP server isn't connected and how to fix it ([Key handling](#hard-rules), rule 1). Don't switch to raw HTTP on your own, and never go looking for a key.
 
 ## Quick facts
 
 | Fact | Value |
 |---|---|
 | How to call | The Promoat MCP tools. Each tool returns the API's JSON unchanged; a failed call returns the error JSON (`error_code`, `message`) as a tool error |
-| Auth | Handled by the plugin: the MCP server is called with `Authorization: Bearer ${PROMOAT_KEY}` from the user's environment. Never ask for the key (see [Key handling](#hard-rules)) |
+| Auth | Handled by the plugin: the MCP server is called with `Authorization: Bearer ${PROMOAT_KEY}` from the plugin's saved key setting. Never ask for the key (see [Key handling](#hard-rules)) |
 | Async | Videos and edits return a `workflow_id`; **poll** with `get_job` every ~20 s until `completed` or `failed`. No webhooks |
 | Output | Always vertical 9:16; default resolution **768P** |
 | Inputs | Every image / audio input is a **public https URL**. The tools cannot upload local files |
@@ -53,7 +53,7 @@ Argument names follow each tool's schema. Two differ from the API's field names:
 ## Golden path
 
 **Make a video**
-1. **Key check** — `get_balance` (free). `401` → the key in `PROMOAT_KEY` is wrong; stop and tell the user to fix it (rule 1). Note `credits_balance`.
+1. **Key check** — `get_balance` (free). `401` → the saved Promoat API key is wrong; stop and tell the user to fix it (rule 1). Note `credits_balance`.
 2. **Character** — reuse an existing `character_id` (`list_characters`) or create one (`create_character`, free). Show `sheet_image_url` and get the user's OK on the look.
 3. **Voice** — reuse a `voice_id` (`list_voices`), add a free studio voice, or clone the user's voice (first clone free, then 30). Skip if the user supplies their own audio (`audio_url`) or wants a silent video.
 4. **Script & format** — agree the script and pick the mode with the [decision table](#choosing-the-request). Optional: `plan_scenes` (free) to preview the scenes.
@@ -72,8 +72,8 @@ Argument names follow each tool's schema. Two differ from the API's field names:
 ## Hard rules
 
 **Key handling**
-1. The key comes from the user's `PROMOAT_KEY` environment variable, and the MCP tools already send it. **Never** ask the user to paste the key into chat, and never print it. Two failure cases:
-   - **The Promoat tools are missing, or a tool answers `401`** → the key isn't set or is wrong where the app was started. Tell the user: "The Promoat server isn't connected — set `PROMOAT_KEY` to your `pmat_…` key (Windows: `[Environment]::SetEnvironmentVariable("PROMOAT_KEY", "pmat_…", "User")`; macOS/Linux: add `export PROMOAT_KEY="pmat_…"` to your shell profile), then fully restart the app and try again." Then stop until they have.
+1. The key is the "Promoat API key" the user entered when installing the plugin, and the MCP tools already send it. **Never** ask the user to paste the key into chat, and never print it. Two failure cases:
+   - **The Promoat tools are missing, or a tool answers `401`** → the saved key is missing or wrong. Tell the user: "The Promoat server isn't connected — update the plugin's Promoat API key to your `pmat_…` key from platform.promoat.ai (reconfigure or reinstall the plugin in your app), then restart the app and try again." Then stop until they have.
    - **Never go looking for a key.** Don't read credential stores, config folders, `.env` files, shell history, or other apps' settings (for example `~/.claude/`, `~/.grok/`, `.credentials.json`) to find one, and never use a key you come across there.
 2. If the user pastes a key into chat anyway, don't repeat it, and recommend they get it replaced: there is no self-serve rotation for current keys, so they ask Promoat support (the dashboard's **Replace with new encrypted key** button exists only for older keys stored without an encrypted copy).
 3. Never print, log, or write a key into files, scripts or docs; redact it to `pmat_…` in anything you show.
@@ -129,8 +129,8 @@ Rules of thumb: `talking_head` is the safe default for a single message; `scenes
 1. **Account** — `https://platform.promoat.ai/sign-up` (full name, organization, email, password ≥8 characters, confirm password), then the dashboard `/partner`.
 2. **Buy credits** — dashboard → **Buy credits** → Stripe checkout. Default is the **$19.99 pack**: **1,499 credits** for accounts created on/after 8 July 2026 20:40 UTC (current tier, 750 credits per $10), **1,738** for older accounts (earlier tier, $1.15 per 100 credits). A custom amount is available (multiples of 100 credits). Credits land within seconds; receipts appear in the dashboard's payments list.
 3. **API key** — with `/sign-up`, the first top-up creates the key; it is shown after checkout and can be revealed and copied from the dashboard's API key panel (signed in). The homepage sign-up creates the key straight away; 25 starter credits are added on the key's first call.
-4. **Store it** — as the `PROMOAT_KEY` environment variable (rule 1 has the commands), then fully restart Claude Code / Grok so the plugin picks it up. Not in chat, not in code.
-5. **Verify** — `get_balance` → `{ "credits_balance": …, … }`. `401` (or the Promoat tools are missing) = `PROMOAT_KEY` is unset, wrong or truncated; fix it and restart the app.
+4. **Store it** — in the plugin's "Promoat API key" setting when installing or configuring the plugin, then restart the app so it picks it up. Not in chat, not in code.
+5. **Verify** — `get_balance` → `{ "credits_balance": …, … }`. `401` (or the Promoat tools are missing) = the saved key is missing, wrong or truncated; fix it in the plugin settings and restart the app.
 
 For scale: a 15 s talking head at 768P from your own audio is 125 credits; a 15 s scenes video with 2 photos is 131.
 
@@ -470,7 +470,7 @@ Every error body carries `error`, `error_code` (UPPER_SNAKE) and `message` (sinc
 | 400 | `IDEMPOTENCY_KEY_REQUIRED` / `_INVALID` / `_MISMATCH` | Add a key / send 1–255 visible ASCII (or a UUID body id) / make header and body agree |
 | 400 | `FIX_TEXT_REQUIRED`, `INVALID_SCENE`, `NO_CHANGES`, `EMPTY_LINE`, `LINE_TOO_LONG` (+`max_words`), `VOICE_EDIT_UNAVAILABLE` | Fix the edit request (P9); for a recording-voiced video use fix-sound |
 | 400 | `TAKE_TOO_SHORT` / `TAKE_TOO_LONG` (+`video_ms`) | Record a take between 40% of the video length (≥1 s) and 59.5 s |
-| 401 | `UNAUTHORIZED` (`error`: `Missing Authorization Bearer token` / `Unauthorized`) | `PROMOAT_KEY` is unset, wrong or truncated: ask the user to fix it and restart the app (rule 1), then test with `get_balance`. Never ask for the key in chat |
+| 401 | `UNAUTHORIZED` (`error`: `Missing Authorization Bearer token` / `Unauthorized`) | the saved key is missing, wrong or truncated: ask the user to fix it in the plugin settings and restart the app (rule 1), then test with `get_balance`. Never ask for the key in chat |
 | 402 | `INSUFFICIENT_CREDITS` (+`credits_required`, `credits_balance`) | Tell the user the gap; dashboard → Buy credits (rule 8); then resend (same key OK). Don't loop |
 | 404 | `NOT_FOUND` (`error`: `NOT_FOUND`, `Not found` or `Job not found`; +`field`) | Id is wrong or not this account's; find it with the `list_*` tools |
 | 409 | `QUOTE_MISMATCH` (+`credits_quoted`) | Price went up (different body or a price change): show the new price, get a yes, resend with the new `expected_credits` |
