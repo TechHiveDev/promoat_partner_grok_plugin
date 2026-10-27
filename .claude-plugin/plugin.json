@@ -8,6 +8,7 @@
     "url": "https://platform.promoat.ai"
   },
   "homepage": "https://platform.promoat.ai",
+  "privacyPolicyUrl": "https://www.promoat.ai/privacy-policy",
   "license": "UNLICENSED",
   "userConfig": {
     "promoat_key": {

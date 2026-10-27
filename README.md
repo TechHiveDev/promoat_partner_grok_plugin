@@ -63,6 +63,10 @@ grok inspect
 
 Ask the agent, in order: `get_balance` → `estimate_video` (do not spend yet) → confirm the quote → `create_video` → poll `get_job` until `completed` or `failed`.
 
+## Privacy
+
+Promoat's privacy policy: https://www.promoat.ai/privacy-policy
+
 ## License
 
 Proprietary. © 2026 Promoat. All rights reserved.
