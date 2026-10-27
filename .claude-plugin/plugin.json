@@ -8,6 +8,8 @@
     "url": "https://platform.promoat.ai"
   },
   "homepage": "https://platform.promoat.ai",
+  "documentationUrl": "https://platform.promoat.ai/docs",
+  "repository": "https://github.com/TechHiveDev/promoat_partner_grok_plugin/tree/claude-directory",
   "privacyPolicyUrl": "https://www.promoat.ai/privacy-policy",
   "license": "UNLICENSED",
   "userConfig": {
