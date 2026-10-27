@@ -511,17 +511,3 @@ Use this only when the user **explicitly** asks for raw HTTP — for example the
 - Each tool maps to one endpoint (see the [Tools](#tools) table). The tool's arguments are the request body; `workflowId` / `id` go in the path; `idempotency_key` becomes the `Idempotency-Key` header; list/balance arguments become query parameters.
 - Spec, docs, playground: `{BASE}/openapi.yaml` · `{BASE}/docs` · `{BASE}/docs/playground`.
 
-```bash
-BASE="https://platform.promoat.ai"
-# Estimate, then queue only after the user approves the number
-EST=$(curl -s -X POST "$BASE/api/partner/v1/videos/estimate" \
-  -H "Authorization: Bearer <API_KEY>" -H "Content-Type: application/json" -d "$BODY")
-QUOTE=$(echo "$EST" | jq -r .credits_required)
-KEY=$(uuidgen)   # save it with the job; reuse it for retries of THIS job only
-curl -s -X POST "$BASE/api/partner/v1/videos" \
-  -H "Authorization: Bearer <API_KEY>" -H "Content-Type: application/json" -H "Idempotency-Key: $KEY" \
-  -d "$(echo "$BODY" | jq --argjson q "$QUOTE" '. + {expected_credits: $q}')"
-
-# Poll
-curl -s "$BASE/api/partner/v1/jobs/$WORKFLOW_ID/status" -H "Authorization: Bearer <API_KEY>"
-```
