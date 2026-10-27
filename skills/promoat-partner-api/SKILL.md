@@ -15,7 +15,7 @@ The **Promoat Partner API** turns a script (or a recording) into a finished vert
 | Fact | Value |
 |---|---|
 | How to call | The Promoat MCP tools. Each tool returns the API's JSON unchanged; a failed call returns the error JSON (`error_code`, `message`) as a tool error |
-| Auth | Handled by the plugin: the MCP server is called with `Authorization: Bearer ${PROMOAT_KEY}` from the plugin's saved key setting. Never ask for the key (see [Key handling](#hard-rules)) |
+| Auth | Handled by the plugin: the MCP server is called with the Promoat API key saved in the plugin's settings. Never ask for the key (see [Key handling](#hard-rules)) |
 | Async | Videos and edits return a `workflow_id`; **poll** with `get_job` every ~20 s until `completed` or `failed`. No webhooks |
 | Output | Always vertical 9:16; default resolution **768P** |
 | Inputs | Every image / audio input is a **public https URL**. The tools cannot upload local files |
@@ -74,7 +74,7 @@ Argument names follow each tool's schema. Two differ from the API's field names:
 **Key handling**
 1. The key is the "Promoat API key" the user entered when installing the plugin, and the MCP tools already send it. **Never** ask the user to paste the key into chat, and never print it. Two failure cases:
    - **The Promoat tools are missing, or a tool answers `401`** → the saved key is missing or wrong. Tell the user: "The Promoat server isn't connected — update the plugin's Promoat API key to your `pmat_…` key from platform.promoat.ai (reconfigure or reinstall the plugin in your app), then restart the app and try again." Then stop until they have.
-   - **Never go looking for a key.** Don't read credential stores, config folders, `.env` files, shell history, or other apps' settings (for example `~/.claude/`, `~/.grok/`, `.credentials.json`) to find one, and never use a key you come across there.
+   - **Never go looking for a key.** Don't read credential stores, config folders, `.env` files, shell history, or other apps' settings to find one, and never use a key you come across there.
 2. If the user pastes a key into chat anyway, don't repeat it, and recommend they get it replaced: there is no self-serve rotation for current keys, so they ask Promoat support (the dashboard's **Replace with new encrypted key** button exists only for older keys stored without an encrypted copy).
 3. Never print, log, or write a key into files, scripts or docs; redact it to `pmat_…` in anything you show.
 
@@ -504,10 +504,10 @@ Every error body carries `error`, `error_code` (UPPER_SNAKE) and `message` (sinc
 
 ## Without the MCP tools (raw HTTP)
 
-Use this only when the user **explicitly** asks for raw HTTP — for example they want `curl` commands or code for their own server — and has set `PROMOAT_KEY` themselves. Missing tools in a chat are not a reason to come here: follow rule 1 instead. Everything above still applies; only the transport changes.
+Use this only when the user **explicitly** asks for raw HTTP — for example they want `curl` commands or code for their own server — and has their own key. Missing tools in a chat are not a reason to come here: follow rule 1 instead. Everything above still applies; only the transport changes.
 
 - Base URL `https://platform.promoat.ai`; API root `{BASE}/api/partner/v1/`. JSON in, JSON out. The live API does not serve MCP — the plugin's MCP server is `https://promoat-platform-plugins.vercel.app/mcp`.
-- Auth: `Authorization: Bearer $PROMOAT_KEY` on every request. Read the key only from the environment variable `PROMOAT_KEY`. If it is not set, don't ask for the key in chat and don't search for it: tell the user to set it (rule 1), then continue. Key format `pmat_<12 hex>_<48 hex>`; the whole string is the credential. It is a server-side key that spends prepaid credits: never put it in frontend, mobile or shared code.
+- Auth: `Authorization: Bearer <API_KEY>` on every request, where `<API_KEY>` is a placeholder the user fills in themselves. Never ask for the key in chat and don't search for it. Key format `pmat_<12 hex>_<48 hex>`; the whole string is the credential. It is a server-side key that spends prepaid credits: never put it in frontend, mobile or shared code.
 - Each tool maps to one endpoint (see the [Tools](#tools) table). The tool's arguments are the request body; `workflowId` / `id` go in the path; `idempotency_key` becomes the `Idempotency-Key` header; list/balance arguments become query parameters.
 - Spec, docs, playground: `{BASE}/openapi.yaml` · `{BASE}/docs` · `{BASE}/docs/playground`.
 
@@ -515,13 +515,13 @@ Use this only when the user **explicitly** asks for raw HTTP — for example the
 BASE="https://platform.promoat.ai"
 # Estimate, then queue only after the user approves the number
 EST=$(curl -s -X POST "$BASE/api/partner/v1/videos/estimate" \
-  -H "Authorization: Bearer $PROMOAT_KEY" -H "Content-Type: application/json" -d "$BODY")
+  -H "Authorization: Bearer <API_KEY>" -H "Content-Type: application/json" -d "$BODY")
 QUOTE=$(echo "$EST" | jq -r .credits_required)
 KEY=$(uuidgen)   # save it with the job; reuse it for retries of THIS job only
 curl -s -X POST "$BASE/api/partner/v1/videos" \
-  -H "Authorization: Bearer $PROMOAT_KEY" -H "Content-Type: application/json" -H "Idempotency-Key: $KEY" \
+  -H "Authorization: Bearer <API_KEY>" -H "Content-Type: application/json" -H "Idempotency-Key: $KEY" \
   -d "$(echo "$BODY" | jq --argjson q "$QUOTE" '. + {expected_credits: $q}')"
 
 # Poll
-curl -s "$BASE/api/partner/v1/jobs/$WORKFLOW_ID/status" -H "Authorization: Bearer $PROMOAT_KEY"
+curl -s "$BASE/api/partner/v1/jobs/$WORKFLOW_ID/status" -H "Authorization: Bearer <API_KEY>"
 ```
