@@ -58,7 +58,7 @@ Argument names follow each tool's schema. Two differ from the API's field names:
 3. **Voice** — reuse a `voice_id` (`list_voices`), add a free studio voice, or clone the user's voice (first clone free, then 30). Skip if the user supplies their own audio (`audio_url`) or wants a silent video.
 4. **Script & format** — agree the script and pick the mode with the [decision table](#choosing-the-request). Optional: `plan_scenes` (free) to preview the scenes.
 5. **Estimate** — `estimate_video` with the exact body you will send (free). Read `credits_required`, `sufficient_credits`, `lines`, `warnings`.
-6. **Confirm the price with the user** — "This will cost N credits (balance B). Go?" Wait for a yes unless the user pre-approved a budget that covers N. If `sufficient_credits` is false, stop and send them to top up.
+6. **Confirm the price with the user** — write a visible chat reply with the estimate: "This will cost N credits (balance B). Go?" and **end your turn**. Wait for a yes unless the user pre-approved a budget that covers N. Never call `create_video` before an `estimate_video` result has been shown to the user in the chat; `sufficient_credits: true` only means the balance is enough, it is not approval. If `sufficient_credits` is false, stop and send them to top up.
 7. **Queue** — `create_video`, same body + `"expected_credits": N` + a fresh `idempotency_key` ([how to make one](#idempotency)). Write down `workflow_id` and the key.
 8. **Poll actively** — tell the user the expected time (talking head ~10 min, scenes ~25 min), then call `get_job` every ~20 s yourself until `completed` or `failed` ([polling](#polling)).
 9. **Deliver** — hand over `video_url` (and `poster_url`), `credits_consumed`, and any warnings. On `failed`, act on `error_code` ([job failures](#job-failure-codes)).
@@ -79,7 +79,7 @@ Argument names follow each tool's schema. Two differ from the API's field names:
 3. Never print, log, or write a key into files, scripts or docs; redact it to `pmat_…` in anything you show.
 
 **Spend safety**
-4. Never call a paid tool without telling the user the price first. Videos: `estimate_video`. Edits: `dry_run: true`. Fixed prices (first frame 4, regenerate 4, TTS, clone 0 or 30) come from the [price list](#pricing). Instant tools have no `expected_credits` guard: check `credits_charged` in the answer.
+4. Never call a paid tool without telling the user the price first, in a visible chat reply. Every `create_video` must be preceded by an `estimate_video` for the same body whose price the user has seen. Videos: `estimate_video`. Edits: `dry_run: true`. Fixed prices (first frame 4, regenerate 4, TTS, clone 0 or 30) come from the [price list](#pricing). Instant tools have no `expected_credits` guard: check `credits_charged` in the answer.
 5. Always send `expected_credits` = the price the user approved. If the server would charge more, it refuses with `409 QUOTE_MISMATCH` and charges nothing. A paid `fix_sound` **requires** it (missing = treated as 0 → 409).
 6. Never loop on `402` or `409`. `402 INSUFFICIENT_CREDITS`: report `credits_required` vs `credits_balance` and send the user to top up (rule 8). `409`: read the code, re-quote or fix, and ask the user again.
 7. Never re-queue a video while the original is still `queued`/`running` — that pays twice.
@@ -99,7 +99,7 @@ Argument names follow each tool's schema. Two differ from the API's field names:
 15. Always tell the user about `warnings` — the request ran, but not exactly as written.
 
 **Polling**
-16. After `create_video` or any paid edit, poll **actively**: call `get_job`, wait ~20 s, call it again, and keep going on your own until `status` is `completed` or `failed`. Don't wait for the user to ask "is it done?", and don't replace the loop with one long wait followed by a single check. Report `phase` / `progress` when it changes, not on every call.
+16. After `create_video` or any paid edit, poll **actively**: call `get_job`, wait ~20 s, call it again, and keep going on your own until `status` is `completed` or `failed`. Don't wait for the user to ask "is it done?", and don't replace the loop with one long wait followed by a single check. Report `phase` / `progress` when it changes, not on every call. Poll with the `get_job` tool itself, never with a shell command, script or code runner (`sleep`, `curl`, Python, …): those make the user approve or click Run for every pause. Never ask the user to run, click or approve anything to keep polling.
 17. **Never end your turn while a job is `queued` or `running`.** You cannot act after your turn ends, so a message like "I'll check about once a minute" or "I'll send the link when it's done" followed by stopping is a broken promise — the user is left waiting. Keep calling `get_job` in the same turn until `completed` or `failed`, then deliver. Check every ~20 s, not "once a minute". Stop early only if the user explicitly tells you to; then give them the `workflow_id` and say they can ask you to check it.
 
 **Talking to the user**
@@ -345,12 +345,12 @@ The loop, with the `get_job` tool:
 3. `queued` / `running` → wait ~20 s, then call `get_job` again. Repeat on your own, **in the same turn**, without waiting for the user to ask. Do not end your turn here (rule 17).
 4. `completed` or `failed` → stop and deliver (below).
 
-How to wait between calls depends on your environment. Use the first that works:
-   1. a short pause of ~20 s (for example a `sleep 20` command when you have a shell);
-   2. if a plain pause is refused, your app's own background-wait or monitor tool, then come back and call `get_job`;
-   3. if you have no way to pause at all, call `get_job` again straight away.
+How to wait between calls: do it inside the tools, never through the user.
+   1. If `get_job` accepts a wait/pause argument (for example `wait_seconds`), use it, ~10–20 s per call.
+   2. Otherwise just call `get_job` again; each call is an ordinary tool call and needs nothing from the user.
+   3. Never use a shell, script or code runner to pause or poll (no `sleep`, `curl`, Python), and never ask the user to run, click or approve anything so that polling can continue.
 
-A few extra checks are fine; slowing to "once a minute", promising to check later, or ending your turn is not. A refused pause is never a reason to stop polling.
+A few extra checks are fine; slowing to "once a minute", promising to check later, or ending your turn is not. No pause method ever justifies stopping the loop.
 
 Keep your updates short: mention `phase` / `progress` only when they change (for example "generating — 40%"), not after every call.
 
